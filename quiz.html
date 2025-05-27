@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>영어 문장 퀴즈</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .sentence-block {
+      margin-bottom: 30px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 15px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    .correct {
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    .word-hint {
+      margin-top: 8px;
+      color: gray;
+      font-size: 0.9em;
+    }
+    .delete-button, .check-button, .reset-button {
+      margin-top: 10px;
+      margin-right: 5px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .delete-button {
+      background-color: #ff5c5c;
+    }
+    .reset-button {
+      background-color: #28a745;
+    }
+  </style>
+</head>
+<body>
+  <h2>영어 문장 퀴즈</h2>
+  <div id="quiz-container"></div>
+  <div id="completionMessage" style="font-weight:bold; color:blue; margin-top:20px;"></div>
+  <button class="reset-button" onclick="resetQuiz()">퀴즈 다시 풀기</button>
+
+  <script>
+    const container = document.getElementById('quiz-container');
+    const sentences = [];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function checkAnswerManual(input, result, answer) {
+      if (input.value.trim() === answer) {
+        result.textContent = '정답입니다!';
+        result.className = 'correct';
+      } else {
+        result.textContent = '틀렸습니다';
+        result.className = 'incorrect';
+      }
+      input.disabled = true;
+
+      if (sentences.every(s => s.input.value.trim() === s.english)) {
+        document.getElementById('completionMessage').textContent = '모든 문장을 정확히 입력하셨습니다!';
+      } else {
+        document.getElementById('completionMessage').textContent = '';
+      }
+    }
+
+    function loadQuiz() {
+      container.innerHTML = '';
+      sentences.length = 0;
+
+      for (let i = 0; i < 50; i++) {
+        const data = localStorage.getItem('sentence_' + i);
+        if (!data) continue;
+        const { english, korean } = JSON.parse(data);
+
+        const div = document.createElement('div');
+        div.className = 'sentence-block';
+        div.dataset.index = i;
+
+        const label = document.createElement('div');
+        label.innerText = `한글 해석: ${korean}`;
+        div.appendChild(label);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = '영어 문장을 입력하세요';
+        input.dataset.answer = english;
+        div.appendChild(input);
+
+        const words = english.split(' ');
+        const shuffled = shuffle([...words]);
+
+        const wordHint = document.createElement('div');
+        wordHint.className = 'word-hint';
+        wordHint.textContent = '단어 힌트: ' + shuffled.join(' | ');
+        div.appendChild(wordHint);
+
+        const result = document.createElement('div');
+        div.appendChild(result);
+
+        const checkButton = document.createElement('button');
+        checkButton.textContent = '정답 확인';
+        checkButton.className = 'check-button';
+        checkButton.onclick = () => checkAnswerManual(input, result, english);
+        div.appendChild(checkButton);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '이 문장 삭제';
+        deleteButton.className = 'delete-button';
+        deleteButton.onclick = () => deleteSentence(i, div);
+        div.appendChild(deleteButton);
+
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') checkAnswerManual(input, result, english);
+        });
+
+        container.appendChild(div);
+
+        sentences.push({ english, input, result });
+      }
+    }
+
+    function deleteSentence(index, element) {
+      localStorage.removeItem('sentence_' + index);
+      container.removeChild(element);
+    }
+
+    function resetQuiz() {
+      sentences.forEach(s => {
+        s.input.disabled = false;
+        s.input.value = '';
+        s.result.textContent = '';
+        s.result.className = '';
+      });
+      document.getElementById('completionMessage').textContent = '';
+    }
+
+    loadQuiz();
+  </script>
+</body>
+</html>
